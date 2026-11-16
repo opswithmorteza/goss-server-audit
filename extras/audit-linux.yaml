@@ -1,0 +1,26 @@
+# Read-only example for a systemd Linux host with OpenSSH and auditd.
+# Review policy, permissions and distribution-specific service names first.
+# Not a CIS benchmark or an ISO 27001 certification.
+file:
+  /etc/shadow:
+    title: Password hashes are owned by root
+    exists: true
+    owner: root
+    filetype: file
+command:
+  sshd_effective_policy:
+    title: OpenSSH disables direct root and empty-password login
+    exec: /usr/sbin/sshd -T
+    exit-status: 0
+    stdout:
+      - '/^permitrootlogin no$/'
+      - '/^permitemptypasswords no$/'
+    timeout: 5000
+port:
+  tcp:23:
+    title: Legacy Telnet port is not listening
+    listening: false
+service:
+  auditd:
+    title: Audit daemon is running
+    running: true

@@ -1,0 +1,8 @@
+{
+  "results": [
+    {"resource-type":"file","resource-id":"/etc/shadow","property":"mode","title":"DEMO: protect password hashes","result":0,"successful":true,"skipped":false},
+    {"resource-type":"port","resource-id":"tcp:23","property":"listening","title":"DEMO: legacy Telnet listener detected","result":1,"successful":false,"skipped":false},
+    {"resource-type":"service","resource-id":"auditd","property":"running","title":"DEMO: audit service check not executed","result":2,"successful":true,"skipped":true}
+  ],
+  "summary":{"test-count":3,"failed-count":1,"skipped-count":1}
+}
