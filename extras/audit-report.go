@@ -13,23 +13,23 @@ import (
 )
 
 type check struct {
-	Resource string `json:"resource-type"`
-	ID string `json:"resource-id"`
-	Property string `json:"property"`
-	Title string `json:"title"`
-	Successful *bool `json:"successful"`
-	Skipped bool `json:"skipped"`
-	Result *int `json:"result"`
-	Status string
+	Resource   string `json:"resource-type"`
+	ID         string `json:"resource-id"`
+	Property   string `json:"property"`
+	Title      string `json:"title"`
+	Successful *bool  `json:"successful"`
+	Skipped    bool   `json:"skipped"`
+	Result     *int   `json:"result"`
+	Status     string
 }
 type report struct {
 	Results []check `json:"results"`
 	Summary *struct {
-		Count int `json:"test-count"`
-		Failed int `json:"failed-count"`
+		Count   int `json:"test-count"`
+		Failed  int `json:"failed-count"`
 		Skipped int `json:"skipped-count"`
 	} `json:"summary"`
-	Passed, Failed, Skipped int
+	Passed, Failed, Skipped                                          int
 	Title, Lang, Dir, Heading, PassLabel, FailLabel, SkipLabel, Note string
 }
 
@@ -38,29 +38,50 @@ type report struct {
 func parse(r io.Reader) (report, error) {
 	var out report
 	data, err := io.ReadAll(io.LimitReader(r, 16*1024*1024+1))
-	if err != nil { return out, err }
-	if len(data) > 16*1024*1024 { return out, fmt.Errorf("input exceeds 16 MiB") }
-	if err = json.Unmarshal(data, &out); err != nil { return out, fmt.Errorf("invalid Goss JSON: %w", err) }
+	if err != nil {
+		return out, err
+	}
+	if len(data) > 16*1024*1024 {
+		return out, fmt.Errorf("input exceeds 16 MiB")
+	}
+	if err = json.Unmarshal(data, &out); err != nil {
+		return out, fmt.Errorf("invalid Goss JSON: %w", err)
+	}
 	out.Passed, out.Failed, out.Skipped = 0, 0, 0
-	if out.Summary == nil || len(out.Results) == 0 { return out, fmt.Errorf("report must contain summary and at least one check") }
+	if out.Summary == nil || len(out.Results) == 0 {
+		return out, fmt.Errorf("report must contain summary and at least one check")
+	}
 	for i := range out.Results {
 		c := &out.Results[i]
-		if c.Result == nil || c.Successful == nil || c.Resource == "" || c.Property == "" { return out, fmt.Errorf("check %d lacks required Goss fields", i+1) }
+		if c.Result == nil || c.Successful == nil || c.Resource == "" || c.Property == "" {
+			return out, fmt.Errorf("check %d lacks required Goss fields", i+1)
+		}
 		switch *c.Result {
 		case 0:
-			if !*c.Successful || c.Skipped { return out, fmt.Errorf("inconsistent passing check %d", i+1) }
-			c.Status = "pass"; out.Passed++
+			if !*c.Successful || c.Skipped {
+				return out, fmt.Errorf("inconsistent passing check %d", i+1)
+			}
+			c.Status = "pass"
+			out.Passed++
 		case 1:
-			if *c.Successful || c.Skipped { return out, fmt.Errorf("inconsistent failing check %d", i+1) }
-			c.Status = "fail"; out.Failed++
+			if *c.Successful || c.Skipped {
+				return out, fmt.Errorf("inconsistent failing check %d", i+1)
+			}
+			c.Status = "fail"
+			out.Failed++
 		case 2:
-			if !c.Skipped || !*c.Successful { return out, fmt.Errorf("inconsistent skipped check %d", i+1) }
-			c.Status = "skip"; out.Skipped++
+			if !c.Skipped || !*c.Successful {
+				return out, fmt.Errorf("inconsistent skipped check %d", i+1)
+			}
+			c.Status = "skip"
+			out.Skipped++
 		default:
 			return out, fmt.Errorf("unknown result code in check %d", i+1)
 		}
 	}
-	if out.Summary.Count != len(out.Results) || out.Summary.Failed != out.Failed || out.Summary.Skipped != out.Skipped { return out, fmt.Errorf("summary disagrees with individual checks") }
+	if out.Summary.Count != len(out.Results) || out.Summary.Failed != out.Failed || out.Summary.Skipped != out.Skipped {
+		return out, fmt.Errorf("summary disagrees with individual checks")
+	}
 	return out, nil
 }
 
@@ -72,32 +93,64 @@ func render(w io.Writer, r report, lang, title string) error {
 		r.Dir = "rtl"
 		r.Heading, r.PassLabel, r.FailLabel, r.SkipLabel = "گزارش بررسی سرور", "موفق", "ناموفق", "بررسی‌نشده"
 		r.Note = "بر پایهٔ نتایج Goss؛ تست ردشده از اجرا اطمینانی ایجاد نمی‌کند. این گزارش گواهی انطباق نیست. مقادیر خام، خطاها و خروجی دستورها نمایش داده نمی‌شوند. نام منابع و عنوان‌ها ممکن است حساس باشند؛ پیش از اشتراک بررسی کنید."
-	} else if lang != "en" { return fmt.Errorf("lang must be en or fa") }
+	} else if lang != "en" {
+		return fmt.Errorf("lang must be en or fa")
+	}
 	t, err := template.New("report").Parse(page)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return t.Execute(w, r)
 }
 
 func run(args []string, stderr io.Writer) int {
-	f := flag.NewFlagSet("goss-audit-report", flag.ContinueOnError); f.SetOutput(stderr)
+	f := flag.NewFlagSet("goss-audit-report", flag.ContinueOnError)
+	f.SetOutput(stderr)
 	in := f.String("input", "", "Goss JSON input file")
 	out := f.String("output", "", "new HTML output file (never overwritten)")
 	lang := f.String("lang", "en", "en or fa")
 	title := f.String("title", "Infrastructure audit", "report title")
-	if err := f.Parse(args); err != nil { if err == flag.ErrHelp { return 0 }; return 2 }
-	if *in == "" || *out == "" || f.NArg() != 0 { fmt.Fprintln(stderr, "provide -input and -output; see -help"); return 2 }
+	if err := f.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
+		return 2
+	}
+	if *in == "" || *out == "" || f.NArg() != 0 {
+		fmt.Fprintln(stderr, "provide -input and -output; see -help")
+		return 2
+	}
 	file, err := os.Open(*in)
-	if err != nil { fmt.Fprintln(stderr, err); return 2 }
-	r, err := parse(file); file.Close()
-	if err != nil { fmt.Fprintln(stderr, err); return 2 }
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	r, err := parse(file)
+	file.Close()
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
 	var buf bytes.Buffer
-	if err = render(&buf, r, *lang, *title); err != nil { fmt.Fprintln(stderr, err); return 2 }
+	if err = render(&buf, r, *lang, *title); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
 	dest, err := os.OpenFile(*out, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil { fmt.Fprintln(stderr, err); return 2 }
-	_, err = dest.Write(buf.Bytes()); closeErr := dest.Close()
-	if err != nil || closeErr != nil { fmt.Fprintf(stderr, "write failed: %v; close: %v\n", err, closeErr); return 2 }
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	_, err = dest.Write(buf.Bytes())
+	closeErr := dest.Close()
+	if err != nil || closeErr != nil {
+		fmt.Fprintf(stderr, "write failed: %v; close: %v\n", err, closeErr)
+		return 2
+	}
 	fmt.Fprintf(stderr, "Report saved: %s (passed=%d failed=%d skipped=%d)\n", *out, r.Passed, r.Failed, r.Skipped)
-	if r.Failed > 0 { return 1 }
+	if r.Failed > 0 {
+		return 1
+	}
 	return 0
 }
 
