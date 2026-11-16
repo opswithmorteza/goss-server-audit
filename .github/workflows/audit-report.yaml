@@ -1,0 +1,28 @@
+name: Audit report companion
+on:
+  push:
+    paths: ['extras/audit-*', '.github/workflows/audit-report.yaml']
+  pull_request:
+    paths: ['extras/audit-*', '.github/workflows/audit-report.yaml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  report:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      GO111MODULE: 'off'
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Test companion, input validation and HTML escaping
+        run: go test -v extras/audit-report.go extras/audit-report_test.go
+      - name: Build standalone report tool
+        run: go build -o goss-audit-report.exe extras/audit-report.go
