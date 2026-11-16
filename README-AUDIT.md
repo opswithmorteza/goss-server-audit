@@ -38,6 +38,18 @@ go build -o goss-audit-report extras/audit-report.go
 Open the generated HTML in a browser. The demo contains fabricated checks, not
 results from a real customer or production host. Windows: use `.exe` for the binary.
 
+Pre-generated examples: [English HTML](extras/audit-demo-en.html) ·
+[Persian HTML](extras/audit-demo-fa.html). Download and open locally.
+
+Validation on 2026-11-16: all three companion test groups passed on Windows
+with Go 1.27.4; `go vet` and standalone build passed (81.2% statement coverage).
+[GitHub Actions tests and builds also passed on Linux and Windows](https://github.com/opswithmorteza/goss-server-audit/actions/runs/43871646926).
+Tests cover malformed and
+oversized inputs, inconsistent counts, unknown result codes, HTML escaping,
+raw-value omission, Persian RTL, failure exit status and overwrite protection.
+The Linux security policy is an example; it has not been validated on a real
+target host in this work. Full upstream Goss integration tests are separate.
+
 ## Collect real results on Linux
 
 Install a reviewed, pinned Goss release using upstream instructions. Inspect
