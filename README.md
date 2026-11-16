@@ -1,3 +1,15 @@
+# Goss Server Audit — Morteza Rajabi
+
+This public fork adds a lightweight **Go HTML report companion** for Goss, with
+English/Persian reports and a read-only Linux baseline example.
+
+**[Start here: report companion, demo and usage](README-AUDIT.md)**
+
+Original Goss engine, contributors and Apache-2.0 license are preserved below.
+The new report tool and examples are maintained by Morteza Rajabi.
+
+---
+
 # Goss - Quick and Easy server validation
 
 [![Integration tests](https://github.com/goss-org/goss/actions/workflows/golangci.yaml/badge.svg)](https://github.com/goss-org/goss/actions/workflows/golangci.yaml)
